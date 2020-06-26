@@ -19,9 +19,10 @@ class _JoinLineHomeState extends State<JoinLineHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.lightGreen[200],
       appBar: AppBar(
-        title: Text('Take A Number'),
-        backgroundColor: Colors.teal[400],
+        title: Text('Take A Number', style: TextStyle(fontSize: 20.0, color: Colors.black)),
+        backgroundColor: Colors.orange[200],
       ),
       body: MyCustomForm()
     );
@@ -48,66 +49,85 @@ class MyCustomFormState extends State<MyCustomForm> {
     final myController = TextEditingController();
     final user = Provider.of<User>(context);
 
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Container(
-            width: 300.0,
-            child: TextFormField(
-              controller: myController,
-              validator: (value) {
-                if (value.isEmpty) {
-                  return 'Please enter some text';
-                } else if(value.length < 1) {
-                  return 'Line numbers must be exactly 6 digits';
-                }
-                return null;
-              },
-              decoration: InputDecoration(
-                hintText: 'Enter Line Number...',
+    int nextNumber;
+
+    return Container(
+      width: 400.0,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Container(
+              width: 300.0,
+              child: TextFormField(
+                controller: myController,
+                validator: (value) {
+                  if (value.isEmpty) {
+                    return 'Please enter some text';
+                  } else if(value.length < 1) {
+                    return 'Line numbers must be exactly 6 digits';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Enter Line Number...',
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: RaisedButton(
-              onPressed: () {
-                _joinLineHelper(myController.text);
-                _waitingHelper(context);
+            SizedBox(height: 20.0),
+            MaterialButton(
+              height: 40.0,
+              minWidth: 120.0,
+              color: Colors.green[300],
+              child: Text('Submit', style: TextStyle(fontSize: 20.0, color: Colors.black)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18.0),
+                side: BorderSide(color: Colors.green[300])
+              ),
+              onPressed: () async {
+                nextNumber = await _joinLineHelper(myController.text);
+                setState(() {
+                  nextNumber = nextNumber;
+                });
+                _waitingHelper(context, nextNumber, myController.text);
               },
-              child: Text('Submit'),
-            ),
-          ),
-        ],
+            )
+          ],
+        ),
       ),
     );
   }
 
-  void _joinLineHelper(String lineName) async {
+  Future<int> _joinLineHelper(String lineName) async {
+
+    int nextNumber;
 
     dynamic result = await _auth.signInAnon();
 
     if(result == null) {
       print('Error Signing In');
+      return null;
     } else {
       print('Signed In Anonymously');
-      print(result.uid);
+      print('${result.uid}');
 
-      await DatabaseService(uid: result.uid).joinLine(lineName, result.uid);
+      nextNumber = await DatabaseService(uid: result.uid).joinLine(lineName, result.uid);
+
+
+      return nextNumber;
     }
   }
 
-  void _waitingHelper(BuildContext context) {
+  void _waitingHelper(BuildContext context, int nextNumber, String lineNumber) {
     Navigator.of(context).push(
         MaterialPageRoute<void>(
             builder: (BuildContext context) {
               return StreamProvider<User>.value(
-                  value: AuthService().user,
-                  child: MaterialApp(
-                    home: Waiting(),
+                  value: AuthService().anonUser,
+                  child: Scaffold(
+                    body: Waiting(position: nextNumber, lineNumber: lineNumber),
                   )
               );
             }

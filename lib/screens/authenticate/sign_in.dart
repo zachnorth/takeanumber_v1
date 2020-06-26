@@ -28,11 +28,11 @@ class _SignInState extends State<SignIn> {
   @override
   Widget build(BuildContext context) {
     return loading ? Loading() : Scaffold(
-      backgroundColor: Colors.grey[500],
+      backgroundColor: Colors.lightGreen[200],
       appBar: AppBar(
-        backgroundColor: Colors.teal[400],
+        backgroundColor: Colors.orange[200],
         elevation: 0.0,
-        title: Text('Sign In'),
+        title: Text('Sign In', style: TextStyle(color: Colors.black, fontSize: 20.0)),
         actions: <Widget>[
           FlatButton.icon(
             icon: Icon(Icons.person),
@@ -68,10 +68,10 @@ class _SignInState extends State<SignIn> {
               ),
               SizedBox(height: 20.0),
               RaisedButton(
-                color: Colors.green[400],
+                color: Colors.green[300],
                 child: Text(
                   'Sign In',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.black),
                 ),
                 onPressed: () async {
                   if(_formKey.currentState.validate()) {

@@ -10,3 +10,10 @@ const textInputDecoration = InputDecoration(
     borderSide: BorderSide(color: Colors.teal, width: 2.0),
   ),
 );
+
+const textStyling = TextStyle(
+  fontSize: 20.0,
+  color: Colors.white
+);
+
+

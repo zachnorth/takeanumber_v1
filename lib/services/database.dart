@@ -20,7 +20,9 @@ class DatabaseService {
 
     return await currentLines.document(name).setData({
       'name': name,
-      'startTime': DateTime.now()
+      'startTime': DateTime.now(),
+      'nextNumber': 1,
+      'currentlyHelping': 1
     });
 
   }
@@ -51,17 +53,51 @@ class DatabaseService {
   }
 
 
-  Future joinLine(String lineName, String uid) async {
+  Future<int> joinLine(String lineName, String uid) async {
+
+    int nextNumber;
+
     dynamic result = await currentLines.document(lineName)
         .collection('line')
         .document(uid)
         .get();
     if (!result.exists) {
-      return await currentLines.document(lineName).collection('line').document(
+      DocumentSnapshot snapshot = await currentLines.document(lineName).get();
+      nextNumber = snapshot.data['nextNumber'];
+
+      print('Next Number: $nextNumber');
+
+      await currentLines.document(lineName).collection('line').document(
           uid).setData({
         'uid': uid,
-        'Date': DateTime.now()
+        'Date': DateTime.now(),
+        'position': nextNumber,
+        'ready': false
       });
+
+      await currentLines.document(lineName).setData({ 'nextNumber': nextNumber + 1, 'startTime': snapshot.data['startTime'] });
+
+      print('Here: $nextNumber');
+
+      return nextNumber;
+    } else {
+      DocumentSnapshot snapshot = result;
+      return snapshot.data['position'];
+    }
+  }
+
+
+
+  Future deleteUserFromLine(String lineNumber, String uid) async {
+
+    await currentLines.document(lineNumber).collection('line').document(uid).delete();
+
+    dynamic result = await currentLines.document(lineNumber).collection('line').document(uid).get();
+
+    if(!result.exists) {
+      print('Line Successfully Deleted.');
+    } else {
+      print('Line Did Not Delete.');
     }
   }
 

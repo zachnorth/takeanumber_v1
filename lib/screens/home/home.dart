@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:takeanumberv1/screens/home/currentLine.dart';
 import 'package:takeanumberv1/services/auth.dart';
-import 'dart:collection';
 import 'package:takeanumberv1/services/database.dart';
 import 'dart:math';
 import 'package:provider/provider.dart';
 import 'package:takeanumberv1/models/user.dart';
+import 'package:css_colors/css_colors.dart';
+import 'package:takeanumberv1/shared/loading.dart';
 
 
 class Home extends StatefulWidget {
@@ -15,29 +18,68 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
 
+  final GlobalKey<ScaffoldState> _scaffKey = GlobalKey<ScaffoldState>();
+
   final AuthService _auth = AuthService();
   final CollectionReference currentLines = Firestore.instance.collection('lines');
 
-  Queue myQueue = Queue();
 
   var random = Random();
 
   String ruid = '';
 
+  bool hasruid = false;
+
+  String currentlyHelping;
+
+
+
 
   @override
   Widget build(BuildContext context) {
 
+    String ruidToDelete;
 
-    var line = Provider.of<List<Person>>(context);
+    final user = Provider.of<User>(context);
 
-    myQueue.add(line);
+    final snackbar1 = SnackBar(
+      backgroundColor: Colors.teal[100],
+      content: Text('You must end your current line before starting a new line.', style: TextStyle(fontSize: 16.0, color: Colors.black)),
+    );
+
+    final snackbar = SnackBar(
+      backgroundColor: Colors.black,
+      content: Row(
+        children: <Widget>[
+          Expanded(child: Text('Are you sure?', style: TextStyle(fontSize: 20.0, color: Colors.white))),
+          SizedBox(width: 10.0),
+          Expanded(child: MaterialButton(
+            height: 40,
+            minWidth: 120,
+            child: Icon(Icons.check),
+            onPressed: () async {
+              _deleteCurrentLine(ruidToDelete);
+              _scaffKey.currentState.hideCurrentSnackBar();
+            },
+          )),
+          Expanded(child: MaterialButton(
+            height: 40,
+            minWidth: 120,
+            child: Icon(Icons.cancel),
+            onPressed: () => _scaffKey.currentState.hideCurrentSnackBar(),
+          ))
+        ],
+      ),
+    );
+
+
 
     return Scaffold(
-      backgroundColor: Colors.blueGrey,
+      key: _scaffKey,
+      backgroundColor: Colors.lightGreen[200],
       appBar: AppBar(
-        title: Text('Home Page'),
-        backgroundColor: Colors.tealAccent,
+        title: Text('Home Page', style: TextStyle(fontSize: 20.0, color: Colors.black)),
+        backgroundColor: Colors.orange[200],
         actions: <Widget>[
           FlatButton.icon(
             icon: Icon(Icons.arrow_back),
@@ -55,48 +97,88 @@ class _HomeState extends State<Home> {
             MaterialButton(
               height: 70.0,
               minWidth: 170.0,
-              color: Colors.green,
+              color: Colors.green[300],
               child: Text('Start New Line',
-                  style: TextStyle(color: Colors.white, fontSize: 20.0)),
+                  style: TextStyle(color: Colors.black, fontSize: 20.0)),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18.0),
-                  side: BorderSide(color: Colors.blueGrey)
+                  side: BorderSide(color: Colors.green[300])
               ),
               onPressed: () {
-                ruid = _randomNumberGeneratorHelper();
-                _startNewLine(ruid);
+                if(!hasruid) {
+                  ruid = _randomNumberGeneratorHelper();
+                  _startNewLine(ruid);
+                  setState(() {
+                    hasruid = true;
+                  });
+                } else {
+                  _scaffKey.currentState.showSnackBar(snackbar1);
+                }
               },
             ),
             SizedBox(height: 20.0),
             MaterialButton(
               height: 70.0,
               minWidth: 170.0,
-              color: Colors.redAccent,
+              color: Colors.red[200],
               child: Text('End Current Line',
-                  style: TextStyle(color: Colors.white, fontSize: 20.0)),
+                  style: TextStyle(color: Colors.black, fontSize: 20.0)),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18.0),
-                  side: BorderSide(color: Colors.blueGrey)
+                  side: BorderSide(color: Colors.red[200])
               ),
-              onPressed: () => _deleteCurrentLine(ruid),
+              onPressed: () {
+                if(hasruid) {
+                  ruidToDelete = ruid;
+                  hasruid = false;
+                  _scaffKey.currentState.showSnackBar(snackbar);
+                }
+              },
             ),
+            SizedBox(height: 20.0),
             MaterialButton(
               height: 70.0,
               minWidth: 170.0,
-              color: Colors.amber,
-              child: Text('Show current line members', style: TextStyle(fontSize: 20.0, color: Colors.white)),
+              color: Colors.orange[200],
+              child: Text('Show current line members', style: TextStyle(fontSize: 20.0, color: Colors.black)),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18.0),
-                  side: BorderSide(color: Colors.blueGrey)
+                  side: BorderSide(color: Colors.orange[200])
               ),
               onPressed: () {
-                myQueue.forEach((i) => print(i));
+                if(hasruid) {
+                  showModalBottomSheet(context: context, builder: (context) {
+                    return Container(
+                      color: Colors.orange[200],
+                      padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 80.0),
+                      child: _currentLineHelper(context),
+                    );
+                  });
+                }
               },
             ),
             Expanded(child: Container()),
             Container(
+              child: ruid == '' ? Text('') : StreamBuilder<DocumentSnapshot>(
+                stream: currentLines.document(ruid).snapshots(),
+                builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+                  if(snapshot.hasError) {
+                    return new Text('Error: ${snapshot.error}');
+                  }
+                  switch (snapshot.connectionState) {
+                    case ConnectionState.waiting: return new Loading();
+                    default:
+                      return Text(
+                        'Currently Helping: ${snapshot.data['currentlyHelping'].toString()}',
+                        style: TextStyle(fontSize: 28.0, color: Colors.black),
+                      );
+                  }
+                },
+              )
+            ),
+            Container(
                 child: Text('Current Line Number: $ruid',
-                    style: TextStyle(color: Colors.white, fontSize: 28.0))
+                    style: TextStyle(color: Colors.black, fontSize: 28.0))
             )
           ],
         ),
@@ -104,8 +186,12 @@ class _HomeState extends State<Home> {
     );
   }
 
-
-
+  StreamProvider<User> _currentLineHelper(BuildContext context) {
+    return StreamProvider<User>.value(
+        value: AuthService().user,
+        child: CurrentLine(lineNumber: ruid)
+    );
+  }
 
   Future<void> _startNewLine(String ruid) async {
 
@@ -143,7 +229,7 @@ class _HomeState extends State<Home> {
       print('No change to ruid: $ruid');
       DatabaseService(uid: ruid).createNewLine(ruid);
       setState(() {
-        ruid = ruid;
+        this.ruid = ruid;
       });
 
     }
@@ -165,10 +251,6 @@ class _HomeState extends State<Home> {
     return currentLines.document(ruid).snapshots()
         .map(_ruidFromSnapshot);
   }
-
-
-
-
 
 }
 

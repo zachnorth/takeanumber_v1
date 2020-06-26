@@ -1,9 +1,20 @@
+import 'dart:collection';
+
 class User {
 
   final String uid;
 
   User({ this.uid });
 
+  Queue myQueue = Queue();
+
+}
+
+class AnonUser {
+
+  final String uid;
+
+  AnonUser({ this.uid });
 }
 
 class UserData {

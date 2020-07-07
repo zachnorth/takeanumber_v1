@@ -26,6 +26,8 @@ class _CurrentLineState extends State<CurrentLine> {
 
     final CollectionReference _line = Firestore.instance.collection('lines').document(widget.lineNumber).collection('line');
 
+    final CollectionReference _users = Firestore.instance.collection('users');
+
     Future alertUser(String uid, bool change) async {
       await _line.document(uid).updateData({
         'ready': !change
@@ -41,7 +43,7 @@ class _CurrentLineState extends State<CurrentLine> {
     String uidToDelete;
 
 
-    ///SnackBar Section
+    //SnackBar Section
 
 
     final GlobalKey<ScaffoldState> _scaffKey = GlobalKey<ScaffoldState>();
@@ -90,14 +92,25 @@ class _CurrentLineState extends State<CurrentLine> {
                 children: snapshot.data.documents.map((DocumentSnapshot document) {
 
                   bool colorCheck = document['ready'];
+
                   user.myQueue.add(document['uid']);
+                  /*
+                  _users.document(user.uid)
+                      .collection('queue')
+                      .document(document.data['uid'])
+                      .setData({
+                        'uid': document.data['uid'],
+                        'Date' : document.data['Date']
+                      });
+                   */
+
 
                   return Column(
                     children: <Widget>[
                       SizedBox(height: 2.0),
                       Container(
                         decoration: BoxDecoration(
-                            color: !colorCheck ? Colors.red[200] : Colors.green[400],
+                            color: !colorCheck ? Colors.red[200] : Colors.green[300],
                             borderRadius: BorderRadius.circular(18.0),
                             border: Border.all(
                                 color: Colors.black,
@@ -108,7 +121,7 @@ class _CurrentLineState extends State<CurrentLine> {
                           enabled: true,
                           title: Text('${document['position']}', style: TextStyle(fontSize: 20.0, color: Colors.black)),
                           onTap: () {
-                            alertUser(document['uid'], document['ready']);
+                            alertUser(document['position'], document['ready']);
                           },
                           onLongPress: () {
                             uidToDelete = document['uid'];

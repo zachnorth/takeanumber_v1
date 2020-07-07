@@ -13,6 +13,8 @@ class DatabaseService {
   //collection reference
   final CollectionReference currentLines = Firestore.instance.collection('lines');
 
+  final CollectionReference users = Firestore.instance.collection('users');
+
 
   //  ******** Current functions *******
 
@@ -67,8 +69,7 @@ class DatabaseService {
 
       print('Next Number: $nextNumber');
 
-      await currentLines.document(lineName).collection('line').document(
-          uid).setData({
+      await currentLines.document(lineName).collection('line').document(uid).setData({
         'uid': uid,
         'Date': DateTime.now(),
         'position': nextNumber,
@@ -101,36 +102,35 @@ class DatabaseService {
     }
   }
 
+  Future alertUsers(String lineNumber, String uid) async {
+
+    DocumentSnapshot result = await currentLines.document(lineNumber).get();
+
+    int currentlyHelping = result.data['currentlyHelping'];
+
+    print('Currently Helping:  ${result.data['currentlyHelping']}');
+
+    int alertedCount = 0;
+
+    print('UID: $uid');
+
+  }
+
 
 
 
   // ******** Current Functions *********
 
 
-  Future updateUserData(String sugars, String name, int strength) async {
+  Future updateUserData(String email, String password) async {
     //Potentially where i have to look up stores by a name (uid)
     //pass storeName to .document(storeName) to create a new line with the document name storeName
-    return await currentLines.document(uid).setData({
-      'sugars': sugars,
-      'name': name,
-      'strength': strength,
+    return await users.document(uid).setData({
+      'currentLineNumber': -1,
+
     });
   }
 
-  Future addUserToExistingLine(String storeName, String userName, String uid) async {
-
-    dynamic result = await currentLines.document(storeName).collection('line').document(userName).get();
-    if(!result.exists) {
-      return await currentLines.document(storeName).collection('line').document(userName).setData({
-        'name': userName,
-        'time': DateTime.now(),
-        'uid': uid
-      });
-    } else {
-      print('User $userName Already exists');
-    }
-
-  }
 
   //list list from snapshot
   List<Line> _lineListFromSnapshot(QuerySnapshot snapshot) {
@@ -151,12 +151,6 @@ class DatabaseService {
         sugars: snapshot.data['sugars'],
         strength: snapshot.data['strength']
     );
-  }
-
-  //get lines stream
-  Stream<List<Line>> get lines {
-    return currentLines.snapshots()
-        .map(_lineListFromSnapshot);
   }
 
   //get user doc stream

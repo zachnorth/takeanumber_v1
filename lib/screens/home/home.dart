@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:takeanumberv1/screens/home/alertUsers.dart';
 import 'package:takeanumberv1/screens/home/currentLine.dart';
 import 'package:takeanumberv1/services/auth.dart';
 import 'package:takeanumberv1/services/database.dart';
@@ -8,6 +10,7 @@ import 'dart:math';
 import 'package:provider/provider.dart';
 import 'package:takeanumberv1/models/user.dart';
 import 'package:css_colors/css_colors.dart';
+import 'package:takeanumberv1/shared/constants.dart';
 import 'package:takeanumberv1/shared/loading.dart';
 
 
@@ -19,9 +22,11 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
 
   final GlobalKey<ScaffoldState> _scaffKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   final AuthService _auth = AuthService();
   final CollectionReference currentLines = Firestore.instance.collection('lines');
+  final CollectionReference users = Firestore.instance.collection('users');
 
 
   var random = Random();
@@ -41,6 +46,7 @@ class _HomeState extends State<Home> {
     String ruidToDelete;
 
     final user = Provider.of<User>(context);
+
 
     final snackbar1 = SnackBar(
       backgroundColor: Colors.teal[100],
@@ -90,75 +96,99 @@ class _HomeState extends State<Home> {
           )
         ],
       ),
-      body: Center(
-        child: Column(
-          children: <Widget>[
-            SizedBox(height: 40.0),
-            MaterialButton(
-              height: 70.0,
-              minWidth: 170.0,
-              color: Colors.green[300],
-              child: Text('Start New Line',
-                  style: TextStyle(color: Colors.black, fontSize: 20.0)),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18.0),
-                  side: BorderSide(color: Colors.green[300])
-              ),
-              onPressed: () {
-                if(!hasruid) {
-                  ruid = _randomNumberGeneratorHelper();
-                  _startNewLine(ruid);
-                  setState(() {
-                    hasruid = true;
-                  });
-                } else {
-                  _scaffKey.currentState.showSnackBar(snackbar1);
-                }
-              },
+      body: Column(
+        children: <Widget>[
+          SizedBox(height: 40.0),
+          MaterialButton(
+            height: 70.0,
+            minWidth: 170.0,
+            color: Colors.green[300],
+            child: Text('Start New Line',
+                style: TextStyle(color: Colors.black, fontSize: 20.0)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18.0),
+                side: BorderSide(color: Colors.green[300])
             ),
-            SizedBox(height: 20.0),
-            MaterialButton(
-              height: 70.0,
-              minWidth: 170.0,
-              color: Colors.red[200],
-              child: Text('End Current Line',
-                  style: TextStyle(color: Colors.black, fontSize: 20.0)),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18.0),
-                  side: BorderSide(color: Colors.red[200])
-              ),
-              onPressed: () {
-                if(hasruid) {
-                  ruidToDelete = ruid;
-                  hasruid = false;
-                  _scaffKey.currentState.showSnackBar(snackbar);
-                }
-              },
+            onPressed: () {
+              if(!hasruid) {
+                ruid = _randomNumberGeneratorHelper();
+                _startNewLine(ruid);
+                setState(() {
+                  hasruid = true;
+                });
+              } else {
+                _scaffKey.currentState.showSnackBar(snackbar1);
+              }
+
+              users.document(user.uid).updateData({ 'currentLineNumber': ruid });
+            },
+          ),
+          SizedBox(height: 20.0),
+          MaterialButton(
+            height: 70.0,
+            minWidth: 170.0,
+            color: Colors.red[200],
+            child: Text('End Current Line',
+                style: TextStyle(color: Colors.black, fontSize: 20.0)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18.0),
+                side: BorderSide(color: Colors.red[200])
             ),
-            SizedBox(height: 20.0),
-            MaterialButton(
-              height: 70.0,
-              minWidth: 170.0,
-              color: Colors.orange[200],
-              child: Text('Show current line members', style: TextStyle(fontSize: 20.0, color: Colors.black)),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18.0),
-                  side: BorderSide(color: Colors.orange[200])
-              ),
-              onPressed: () {
-                if(hasruid) {
-                  showModalBottomSheet(context: context, builder: (context) {
-                    return Container(
-                      color: Colors.orange[200],
-                      padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 80.0),
-                      child: _currentLineHelper(context),
-                    );
-                  });
-                }
-              },
+            onPressed: () {
+              if(hasruid) {
+                ruidToDelete = ruid;
+                hasruid = false;
+                _scaffKey.currentState.showSnackBar(snackbar);
+              }
+            },
+          ),
+          SizedBox(height: 20.0),
+          MaterialButton(
+            height: 70.0,
+            minWidth: 170.0,
+            color: Colors.orange[200],
+            child: Text('Show current line members', style: TextStyle(fontSize: 20.0, color: Colors.black)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18.0),
+                side: BorderSide(color: Colors.orange[200])
             ),
-            Expanded(child: Container()),
-            Container(
+            onPressed: () {
+              if(hasruid) {
+                showModalBottomSheet(context: context, builder: (context) {
+                  return Container(
+                    color: Colors.orange[200],
+                    padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 80.0),
+                    child: _currentLineHelper(context),
+                  );
+                });
+              }
+            },
+          ),
+          SizedBox(height: 20.0),
+          MaterialButton(
+            height: 70.0,
+            minWidth: 170.0,
+            color: Colors.orange[200],
+            child: Text('Alert Next Numbers', style: TextStyle(fontSize: 20.0, color: Colors.black)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18.0),
+                side: BorderSide(color: Colors.orange[200])
+            ),
+            onPressed: () {
+              if(hasruid) {
+                showModalBottomSheet(context: context, builder: (context) {
+
+                  return Container(
+                    color: Colors.orange[200],
+                    padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 80.0),
+                    child: _alertUsersHelper(context),
+                  );
+                });
+              }
+            },
+          ),
+          Expanded(child: Container()),
+          Container(
               child: ruid == '' ? Text('') : StreamBuilder<DocumentSnapshot>(
                 stream: currentLines.document(ruid).snapshots(),
                 builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
@@ -175,21 +205,29 @@ class _HomeState extends State<Home> {
                   }
                 },
               )
-            ),
-            Container(
-                child: Text('Current Line Number: $ruid',
-                    style: TextStyle(color: Colors.black, fontSize: 28.0))
-            )
-          ],
-        ),
+          ),
+          Container(
+              child: Text('Current Line Number: $ruid',
+                  style: TextStyle(color: Colors.black, fontSize: 28.0))
+          )
+        ],
       ),
     );
   }
 
+
+  StreamProvider<User> _alertUsersHelper(BuildContext context) {
+    return StreamProvider<User>.value(
+      value: AuthService().user,
+      child: AlertUsers(lineNumber: ruid),
+    );
+  }
+
+
   StreamProvider<User> _currentLineHelper(BuildContext context) {
     return StreamProvider<User>.value(
         value: AuthService().user,
-        child: CurrentLine(lineNumber: ruid)
+        child: CurrentLine(lineNumber: '10')
     );
   }
 
@@ -205,8 +243,7 @@ class _HomeState extends State<Home> {
       ruid = '';
     });
   }
-  
-  
+
   Future<void> _availabilityCheckHelper(String ruid, int count) async {
 
 

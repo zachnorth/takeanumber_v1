@@ -49,7 +49,7 @@ class AuthService {
   }
 
   //register with email and password
-  Future registerWithEmailAndPassword(String email, String password /*, LineName,*/) async {
+  Future registerWithEmailAndPassword(String email, String password) async {
     try {
       AuthResult result = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       FirebaseUser user = result.user;
@@ -59,7 +59,7 @@ class AuthService {
       //THIS SHOULD BE A NEW FUNCTION TO CREATE A NEW LINE
       //create a new document for the user with the uid
 
-      await DatabaseService(uid: user.uid).updateUserData('0', 'New User', 100);  //UID is the document name
+      await DatabaseService(uid: user.uid).updateUserData(email, password);  //UID is the document name
 
       return _userFromFirebaseUser(user);
     } catch(e) {

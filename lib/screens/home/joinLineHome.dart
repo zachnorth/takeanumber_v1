@@ -115,7 +115,6 @@ class MyCustomFormState extends State<MyCustomForm> {
 
       nextNumber = await DatabaseService(uid: result.uid).joinLine(lineName, result.uid);
 
-
       return nextNumber;
     }
   }

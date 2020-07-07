@@ -7,7 +7,6 @@ class User {
   User({ this.uid });
 
   Queue myQueue = Queue();
-
 }
 
 class AnonUser {
